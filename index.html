@@ -908,11 +908,21 @@
             // 인식률 개선 설정
             const config = {
                 fps: 15,
-                qrbox: 250,
+                qrbox: function (viewfinderWidth, viewfinderHeight) {
+                    // 화면의 85%를 스캔 영역으로 —  최대한 넓게
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    const size = Math.max(200, Math.floor(minEdge * 0.85));
+                    return { width: size, height: size };
+                },
                 disableFlip: false,
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
                 }
+            };
+
+            // 스캔 실패 콜백 (필수 — 없으면 라이브러리 내부 에러 발생 가능)
+            const onScanFailure = (errorMessage) => {
+                // 매 프레임 실패를 무시 (QR이 없는 프레임은 정상적으로 실패함)
             };
 
             // 카메라 선택: ID가 지정되면 ID로, 아니면 facingMode로
@@ -928,7 +938,8 @@
             scanner.start(
                 cameraConfig,
                 config,
-                onScanSuccess
+                onScanSuccess,
+                onScanFailure
             ).then(() => {
                 isScanning = true;
                 updateCameraUI();
@@ -948,7 +959,8 @@
                     scanner.start(
                         { facingMode: fallbackFacing },
                         config,
-                        onScanSuccess
+                        onScanSuccess,
+                        onScanFailure
                     ).then(() => {
                         isScanning = true;
                         currentFacing = fallbackFacing;

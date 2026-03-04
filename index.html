@@ -824,7 +824,7 @@
                 <div class="logo">🍚</div>
                 <div class="header-title">경로식당 QR 출석</div>
                 <div class="header-right">
-                    <button class="btn-icon" id="btnSettings" title="설정" aria-label="설정">⚙️</button>
+                    <!-- 하드코딩으로 변경하여 설정 버튼 제거됨 -->
                 </div>
             </div>
         </header>
@@ -910,34 +910,11 @@
         </footer>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-handle"></div>
-            <div class="modal-title">⚙️ 설정</div>
-            <div class="form-group">
-                <label class="form-label">Google Apps Script 웹앱 URL</label>
-                <input type="text" class="form-input" id="inputGasUrl"
-                    placeholder="https://script.google.com/macros/s/.../exec" />
-                <div class="form-hint">관리자에게 받은 웹앱 URL을 입력하세요. 변경 후 저장하면 반영됩니다.</div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">자동 재스캔 대기 시간 (초)</label>
-                <input type="number" class="form-input" id="inputDelay" min="1" max="10" value="3" />
-                <div class="form-hint">출석 처리 후 다음 스캔까지의 대기 시간</div>
-            </div>
-            <button class="btn-save" onclick="saveSettings()">저장</button>
-            <button class="btn-clear" style="width:100%; margin-top:12px; padding:12px;"
-                onclick="closeSettings()">닫기</button>
-        </div>
-    </div>
-
     <!-- Audio: 성공 비프음을 Web Audio API로 생성 -->
     <script>
-        // ===== Configuration =====
-        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzehdygDaRMEMwETphkTuC_aH4J0kycG0Xcna_HNg3rNqt4OzEQ-_oAKqr2V0DagDag1A/exec';
-        let GAS_URL = localStorage.getItem('qr_gas_url') || DEFAULT_GAS_URL;
-        let RESUME_DELAY = parseInt(localStorage.getItem('qr_delay') || '3') * 1000;
+        // ===== Configuration (하드코딩 - 변경 필요 시 아래 문자열 직접 수정) =====
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwYK2Cy_p0p3cCjReJkuU4VyChFprmTRaxoLbRBbrT4qzzso34Ys3bkfEqiDzw1FovCsg/exec';
+        const RESUME_DELAY = 3000; // 스캔 대기 시간 3초
 
         // ===== State =====
         const $ = id => document.getElementById(id);
@@ -1001,9 +978,10 @@
 
             scanner = new Html5Qrcode('scanner-container');
 
-            // 인식률 개선 설정 (전체 화면 스캔)
+            // 인식 속도 극대화 설정
             const config = {
-                fps: 15,
+                fps: 30, // 스캔 주기 단축 (초당 30프레임)
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], // 바코드 등을 찾지 않고 QR에만 모든 성능 집중
                 disableFlip: false,
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
@@ -1411,41 +1389,7 @@
             return div.innerHTML;
         }
 
-        // ===== Settings =====
-        $('btnSettings').addEventListener('click', openSettings);
-
-        function openSettings() {
-            $('inputGasUrl').value = GAS_URL;
-            $('inputDelay').value = RESUME_DELAY / 1000;
-            $('settingsModal').classList.add('show');
-        }
-
-        function closeSettings() {
-            $('settingsModal').classList.remove('show');
-        }
-
-        function saveSettings() {
-            const url = $('inputGasUrl').value.trim();
-            const delay = parseInt($('inputDelay').value) || 3;
-
-            if (!url) {
-                alert('웹앱 URL을 입력해주세요.');
-                return;
-            }
-
-            GAS_URL = url;
-            RESUME_DELAY = delay * 1000;
-            localStorage.setItem('qr_gas_url', url);
-            localStorage.setItem('qr_delay', delay);
-
-            closeSettings();
-            showToast('설정이 저장되었습니다.');
-        }
-
-        // 모달 밖 클릭 시 닫기
-        $('settingsModal').addEventListener('click', (e) => {
-            if (e.target === $('settingsModal')) closeSettings();
-        });
+        // 모달 밖 클릭 시 닫기 (설정 기능 제거됨)
 
         // ===== Audio Feedback =====
         const AudioCtx = window.AudioContext || window.webkitAudioContext;

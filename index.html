@@ -219,12 +219,102 @@
             max-height: 70vh !important;
         }
 
-        /* 스캔 영역 테두리 강조 */
-        #scanner-container #qr-shaded-region {
-            border-color: rgba(49, 130, 246, 0.5) !important;
+        /* 스캔 영역 테두리 오버레이 (CSS로 직접 그림) */
+        .scanner-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 5;
         }
 
-        /* 스캔 오버레이는 라이브러리 기본 UI 사용 */
+        .scan-frame {
+            width: 75%;
+            aspect-ratio: 1;
+            max-width: 320px;
+            position: relative;
+        }
+
+        .scan-frame::before,
+        .scan-frame::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: var(--blue);
+            border-style: solid;
+        }
+
+        .scan-frame::before {
+            top: 0;
+            left: 0;
+            border-width: 4px 0 0 4px;
+            border-radius: 8px 0 0 0;
+        }
+
+        .scan-frame::after {
+            top: 0;
+            right: 0;
+            border-width: 4px 4px 0 0;
+            border-radius: 0 8px 0 0;
+        }
+
+        .scan-frame-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+        }
+
+        .scan-frame-bottom::before,
+        .scan-frame-bottom::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: var(--blue);
+            border-style: solid;
+        }
+
+        .scan-frame-bottom::before {
+            bottom: 0;
+            left: 0;
+            border-width: 0 0 4px 4px;
+            border-radius: 0 0 0 8px;
+        }
+
+        .scan-frame-bottom::after {
+            bottom: 0;
+            right: 0;
+            border-width: 0 4px 4px 0;
+            border-radius: 0 0 8px 0;
+        }
+
+        .scan-line {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--blue), transparent);
+            animation: scan-move 2.5s ease-in-out infinite;
+            box-shadow: 0 0 12px var(--blue-glow);
+            top: 50%;
+        }
+
+        @keyframes scan-move {
+
+            0%,
+            100% {
+                transform: translateY(-100px);
+            }
+
+            50% {
+                transform: translateY(100px);
+            }
+        }
 
         /* ===== Idle State (카메라 꺼짐) ===== */
         .idle-view {
@@ -761,6 +851,12 @@
                 <!-- Scanner View -->
                 <div id="scannerView" style="display:none; position:relative;">
                     <div id="scanner-container"></div>
+                    <div class="scanner-overlay">
+                        <div class="scan-frame">
+                            <div class="scan-line"></div>
+                            <div class="scan-frame-bottom"></div>
+                        </div>
+                    </div>
                     <div class="processing" id="processing">
                         <div class="processing-spinner"></div>
                         <div class="processing-text">출석 처리 중...</div>
@@ -905,15 +1001,9 @@
 
             scanner = new Html5Qrcode('scanner-container');
 
-            // 인식률 개선 설정
+            // 인식률 개선 설정 (전체 화면 스캔)
             const config = {
                 fps: 15,
-                qrbox: function (viewfinderWidth, viewfinderHeight) {
-                    // 화면의 85%를 스캔 영역으로 —  최대한 넓게
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    const size = Math.max(200, Math.floor(minEdge * 0.85));
-                    return { width: size, height: size };
-                },
                 disableFlip: false,
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
@@ -1109,9 +1199,12 @@
                 $('processing').classList.remove('show');
 
                 if (data && data.success) {
-                    showResult('success', data.message);
-                } else if (data && data.message && data.message.includes('이미')) {
-                    showResult('duplicate', data.message);
+                    // 성공 응답이지만 메시지에 '이미'가 포함된 경우(중복 출석)
+                    if (data.message && data.message.includes('이미')) {
+                        showResult('duplicate', data.message);
+                    } else {
+                        showResult('success', data.message);
+                    }
                 } else {
                     showResult('error', data ? data.message : '알 수 없는 오류');
                 }
